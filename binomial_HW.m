@@ -106,7 +106,7 @@ likelihood = p_8*p_5;
 
 % Calculate the Log-Likelihood
 log_likelihood = log(p_8) + log(p_5);
-fprintf('The likelihood is: %.2f \nThe log-likelihood is: %.2f\n', ...
+fprintf('The likelihood is: %.2f \nThe log-likelihood is: %.2f\n\n', ...
     likelihood, log_likelihood)
 
 % Loop through each decile of release probability (0.1-1.0)
@@ -114,6 +114,7 @@ fprintf('The likelihood is: %.2f \nThe log-likelihood is: %.2f\n', ...
 quanta_data = [5 8];
 prob_5 = zeros(1, 11);
 prob_8 = zeros(1, 11);
+
 
 for quanta = quanta_data
     p = 0:0.1:1;
@@ -128,16 +129,126 @@ for quanta = quanta_data
         % Display the result
         if quanta == 5
             prob_5(t) = outcome;
-            fprintf(['The probability of %d quanta being released with a %.1f ' ...
-                'release probability is %.2f\n'], quanta, release_prob, outcome);
-            
         else 
             prob_8(t) = outcome;
-            fprintf(['The probability of %d quanta being released with a %.1f ' ...
-                'release probability is %.2f\n'], quanta, release_prob, outcome);
         end 
     end
 end
+
+p_release = 0:0.1:1;
+
+% Set the display format for numeric values
+format bank;
+
+% Create a table with the specified format
+T = table(p_release', prob_5', prob_8', 'VariableNames', {'Probability of release', '5 quanta', '8 quanta'});
+
+% Display the table
+disp(T);
+
+% Calculate the likelihood and log-likelihood for prob_5 and prob_8
+likelihood_5 = prod(prob_5);
+log_likelihood_5 = sum(log(prob_5));
+
+likelihood_8 = prod(prob_8);
+log_likelihood_8 = sum(log(prob_8));
+
+fprintf('The likelihood for 5 quanta released is: %.6f\n', likelihood_5);
+fprintf('The log-likelihood for 5 quanta released is: %.6f\n\n', log_likelihood_5);
+
+fprintf('The likelihood for 8 quanta released is: %.6f\n', likelihood_8);
+fprintf('The log-likelihood for 8 quanta released is: %.6f\n\n', log_likelihood_8);
+
+%% From this part down I used AI
+
+% Find the maximum likelihood and corresponding release probability for 5 quanta
+[max_likelihood_5, idx_5] = max(prob_5);
+max_prob_5 = p_release(idx_5);
+
+% Find the maximum likelihood and corresponding release probability for 8 quanta
+[max_likelihood_8, idx_8] = max(prob_8);
+max_prob_8 = p_release(idx_8);
+
+% Display the results
+fprintf('Maximum Likelihood for 5 quanta released: %.6f\n', max_likelihood_5);
+fprintf('Corresponding Release Probability for 5 quanta: %.2f\n\n', max_prob_5);
+
+fprintf('Maximum Likelihood for 8 quanta released: %.6f\n', max_likelihood_8);
+fprintf('Corresponding Release Probability for 8 quanta: %.2f\n\n', max_prob_8);
+
+clear; clc;
+close all; % Close any existing figures
+
+% Parameters:
+p = 0.1; % Probability of releasing a single quantum
+q = 14;  % Total number of quanta available
+quanta_data = [5, 8]; % Quanta data for simulation
+resolution = 0.01; % Resolution for release probability
+
+% Create a range of release probabilities with higher resolution
+p_release = 0:resolution:1;
+
+% Initialize arrays to store results
+likelihood_5 = zeros(1, length(p_release));
+log_likelihood_5 = zeros(1, length(p_release));
+likelihood_8 = zeros(1, length(p_release));
+log_likelihood_8 = zeros(1, length(p_release));
+
+% Create a figure to hold the likelihood plots
+figure;
+
+% Simulate data with increasing sample sizes
+sample_sizes = [10, 100, 1000, 10000]; % You can add more sample sizes as needed
+
+for n = sample_sizes
+    fprintf('Simulating data with sample size %d...\n', n);
+    
+    for i = 1:length(p_release)
+        release_prob = p_release(i);
+        
+        % Simulate data for 5 quanta
+        data_5 = binornd(q, release_prob, 1, n);
+        % Calculate likelihood and log-likelihood for 5 quanta
+        likelihood_5(i) = prod(binopdf(data_5, q, release_prob));
+        log_likelihood_5(i) = sum(log(binopdf(data_5, q, release_prob)));
+        
+        % Simulate data for 8 quanta
+        data_8 = binornd(q, release_prob, 1, n);
+        % Calculate likelihood and log-likelihood for 8 quanta
+        likelihood_8(i) = prod(binopdf(data_8, q, release_prob));
+        log_likelihood_8(i) = sum(log(binopdf(data_8, q, release_prob)));
+    end
+    
+    % Find and display the maximum likelihood and the corresponding release probability
+    [max_likelihood_5, idx_5] = max(likelihood_5);
+    max_prob_5 = p_release(idx_5);
+    
+    [max_likelihood_8, idx_8] = max(likelihood_8);
+    max_prob_8 = p_release(idx_8);
+    
+    fprintf('Sample Size: %d\n', n);
+    fprintf('Maximum Likelihood for 5 quanta released: %.6f\n', max_likelihood_5);
+    fprintf('Corresponding Release Probability for 5 quanta: %.2f\n', max_prob_5);
+    fprintf('Maximum Likelihood for 8 quanta released: %.6f\n', max_likelihood_8);
+    fprintf('Corresponding Release Probability for 8 quanta: %.2f\n', max_prob_8);
+    fprintf('--------------------------------------\n');
+    
+    % Plot likelihood curves for 5 quanta and 8 quanta
+    subplot(2, 2, find(sample_sizes == n));
+    plot(p_release, likelihood_5, 'r', 'LineWidth', 1.5);
+    hold on;
+    plot(p_release, likelihood_8, 'b', 'LineWidth', 1.5);
+    title(sprintf('Sample Size: %d', n));
+    xlabel('Release Probability');
+    ylabel('Likelihood');
+    legend('5 quanta', '8 quanta');
+    grid on;
+    hold off;
+    
+    pause(1); % Pause to allow time to see the plot (adjust as needed)
+end
+
+
 
 %% Exercise 4
 % You keep going and conduct 100 separate experiments and end up with these 
@@ -146,6 +257,8 @@ end
 % is pronounced as "p-hat" and represents the maximum-likelihood estimate of 
 % a parameter in the population given our sample with a resolution of 0.01?
 % BONUS: Use a fitting procedure to find 
+
+
 
 %% Exercise 5
 %  Let's say that you have run an exhaustive set of experiments on this synapse 
