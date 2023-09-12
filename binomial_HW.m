@@ -258,7 +258,44 @@ end
 % a parameter in the population given our sample with a resolution of 0.01?
 % BONUS: Use a fitting procedure to find 
 
+clear; clc;
 
+% Measured releases and their corresponding counts
+measured_releases = 0:14;
+counts = [0 0 3 7 10 19 26 16 16 5 5 0 0 0 0];
+
+% Define the likelihood function
+likelihood = @(p) prod(binopdf(measured_releases, 14, p));
+
+% Create a range of p values with the desired resolution
+p_values = 0:0.01:1;
+
+% Initialize arrays to store likelihood values
+likelihood_values = zeros(size(p_values));
+
+% Calculate the likelihood for each p value
+for i = 1:length(p_values)
+    likelihood_values(i) = likelihood(p_values(i));
+end
+
+% Find the value of p that maximizes the likelihood
+[max_likelihood, idx] = max(likelihood_values);
+p_hat = p_values(idx);
+
+% Display the maximum-likelihood estimate (p-hat)
+fprintf('Maximum-Likelihood Estimate (p-hat): %.2f\n', p_hat);
+
+% Plot the likelihood curve
+figure;
+plot(p_values, likelihood_values, 'b', 'LineWidth', 1.5);
+hold on;
+scatter(p_hat, max_likelihood, 100, 'r', 'filled');
+title('Likelihood Curve for p');
+xlabel('p');
+ylabel('Likelihood');
+legend('Likelihood', 'Maximum-Likelihood Estimate (p-hat)');
+grid on;
+hold off;
 
 %% Exercise 5
 %  Let's say that you have run an exhaustive set of experiments on this synapse 
