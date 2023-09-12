@@ -160,6 +160,8 @@ fprintf('The likelihood for 8 quanta released is: %.6f\n', likelihood_8);
 fprintf('The log-likelihood for 8 quanta released is: %.6f\n\n', log_likelihood_8);
 
 %% From this part down I used AI
+% OpenAI. (2023). ChatGPT (August 3 Version) [Large language model]. https://chat.openai.com
+% https://chat.openai.com/share/c20bf627-ee9f-47c4-a517-8a791c7dde8d
 
 % Find the maximum likelihood and corresponding release probability for 5 quanta
 [max_likelihood_5, idx_5] = max(prob_5);
@@ -311,3 +313,37 @@ hold off;
 %  is the probability that you would have gotten that measurement if your Null 
 %  Hypothesis were true? Can you conclude that temperature had an effect?
 
+clear; clc;
+
+% Given data
+true_p = 0.3; % Assumed true release probability under the null hypothesis
+observed_successes = 7; % Number of successes (quantal events)
+total_trials = 14; % Total number of trials (available quanta)
+
+% Calculate p-hat (sample proportion)
+p_hat = observed_successes / total_trials;
+
+% Perform a z-test for proportions
+alpha = 0.05; % Significance level
+z_critical = norminv(1 - alpha/2); % Critical z-value for two-tailed test
+
+% Standard error for proportion
+standard_error = sqrt((p_hat * (1 - p_hat)) / total_trials);
+
+% Calculate the z-score
+z_score = (p_hat - true_p) / standard_error;
+
+% Calculate the p-value for the two-tailed test
+p_value = 2 * (1 - normcdf(abs(z_score)));
+
+% Display the results
+fprintf('p-hat (Sample Proportion): %.4f\n', p_hat);
+fprintf('z-score: %.4f\n', z_score);
+fprintf('p-value: %.4f\n', p_value);
+
+% Check the null hypothesis
+if p_value < alpha
+    fprintf('Reject the null hypothesis (Ha: changing the temperature has an effect).\n');
+else
+    fprintf('Fail to reject the null hypothesis (H0: no effect of changing the temperature).\n');
+end
