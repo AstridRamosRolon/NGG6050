@@ -1,3 +1,4 @@
+https://chat.openai.com/share/63695b14-d6cb-4f45-9dfa-6aab0fe50cb1
 % LATER Fitting Exercise
 %
 % Copyright 2023 by Joshua I. Gold, University of Pennsylvania
