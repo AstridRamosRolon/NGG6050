@@ -1,0 +1,175 @@
+---
+title: "ABC Data - Moderation Model"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(readxl)
+library(magrittr)
+library(crayon)
+library(emmeans)
+```
+
+### Clear Workspace
+```{r}
+rm(list = ls())
+```
+
+### Set working directory
+```{r}
+setwd("/Users/astridrr/Desktop/Wiers_Lab/ABC_FC/Astrid_code")
+```
+
+### Load Segretation data
+
+```{r}
+data_alc <- read_excel("alc_dem_cognorm.xlsx") # Imports the Alcohol Use data
+data_seg <- read_excel("seg_dem_cognorm.xlsx")[,-(2:4)] # Imports the Segregation data excluding columns 2 to 4
+
+data <- merge(data_alc, data_seg, by ="Sub ID") # Merges Alcohol and Segregation data by Subject ID
+```
+
+### Prepare Data and variables
+
+```{r}
+ntws <- names(data_seg)[(2:19)]
+data$Sex <- recode(data$Sex, 'Female'=0,'Male'=1)
+data$ALCOHOL <- recode(data$ALCOHOL,'2'=1)
+data$ALCFREQ[is.na(data$ALCFREQ)] <- 0
+data$ALCFREQ %<>% factor()
+data$ALCOHOL %<>% factor()
+```
+
+#### Clears the console
+```{r}
+cat("\f")
+```
+
+### Age -> Segregation
+
+```{r}
+cat("\n\n",crayon::bgCyan(crayon::black(paste("Segregation ~ 1 + AgeatMRI"))),"\n",sep="")
+
+# This loop iterates through all the networks
+for (n in ntws) {
+	paste(n,"~ 1 + AgeatMRI\n",sep="") %>% green() %>% underline() %>% cat()
+    # Defines the linear model for the current network
+	mdl <- paste0("`",n,"`", "~ 1 + AgeatMRI")
+	# Fits the linear model for the current network to the data
+	lm <- lm(mdl, data)
+	# Performs an ANOVA on lm
+	lmAov <- lm %>% anova() %T>% print()
+	# Summarizes the lm and extracts the model coefficients along with their confidence intervals
+	lmSum <- lm %>% summary() %>% {.$coefficients} %>% cbind(confint(lm)[row.names(.),]) %T>% print()
+	}
+```
+
+### Age*AUD -> Segregation
+```{r}
+cat("\n\n",crayon::bgCyan(crayon::black(paste("Segregation ~ 1 + AgeatMRI*AUD"))),"\n",sep="")
+
+subs <- c(7, 44, 67, 73, 88, 144, 233, 156, 123, 141, 133, 93, 222, 135)
+lmdata <- filter_all(data, any_vars(data$`Sub ID` %in% subs))
+
+# This loop iterates through all the networks
+for (n in ntws) {
+    # Printing the current network in green and underlined format
+    paste(n, "~1+AgeatMRI*ALCOHOL\n", sep = "") %>% 
+        green() %>% underline() %>% cat()
+    
+    # Defines the linear model for the current network
+    mdl <- paste0("`", n, "`", "~1+AgeatMRI*ALCOHOL")
+    
+    # Fits the linear model for the current network to the data
+    lm <- lm(mdl, lmdata)
+    
+    # Performs an ANOVA on lm and prints the results
+    lmAov <- lm %>% anova() %T>% print()
+    
+    # Summarizes the lm and extracts the model coefficients along with their confidence intervals
+    lmSum <- lm %>% summary() %>% {.$coefficients} %>% cbind(confint(lm)[row.names(.),]) %T>% print()
+    
+    # Checking the significance of the "AgeatMRI:ALCOHOL" interaction term in the ANOVA
+    if (lmAov["AgeatMRI:ALCOHOL",][["Pr(>F)"]] < 0.08) {
+        paste("Emmeans for AgeatMRI:ALCOHOL\n", sep = "") %>% yellow() %>% cat()
+        
+        # Calculates estimated marginal means (emmeans) for the interaction between "AgeatMRI" and "ALCOHOL"
+        Emm <- lm %>% emmeans(~AgeatMRI * ALCOHOL) %T>% {print(as.tibble(.))}
+        
+        # Calculates contrasts between specific combinations of the levels of "AgeatMRI" and "ALCOHOL" based on the Emm object
+        Emm %>% emmeans::contrast(list(c(0, 70), c(0, 1)), adjust = "sidak") %>% 
+            {cbind(., confint(.)[,5:6])} %T>%
+            {print(as.tibble(.))}
+    } else {
+        # Checking the significance of the "ALCOHOL" term in the ANOVA
+        if (lmAov["ALCOHOL",][["Pr(>F)"]] < 0.08) {
+            paste("Emmeans for ALCOHOL\n", sep = "") %>% yellow() %>% cat()
+            
+            # Calculates estimated marginal means (emmeans) for "ALCOHOL"
+            Emm <- lm %>% emmeans(~ALCOHOL) %T>% {print(as.tibble(.))}
+            
+            # Calculates contrasts between specific combinations of the levels of "ALCOHOL" based on the Emm object
+            Emm %>% emmeans::contrast(list(c(0, 1)), adjust = "sidak") %>% {cbind(., confint(.)[, 5:6])} %T>%
+                {print(as.tibble(.))}
+        }
+    }
+}
+
+```
+
+### Drinking Frequency*Age -> Segregation
+```{r}
+cat("\n\n",crayon::bgCyan(crayon::black(paste("Segregation ~ 1 + AgeatMRI*Drinking Frequency"))),"\n",sep="")
+
+subs <- c(44, 45, 58, 93, 104, 107, 117, 123, 130, 133, 135, 136, 138, 139, 141, 
+          142, 144, 145, 146, 148, 153, 155, 156, 166, 168, 169, 174, 176, 178, 
+          179, 180, 182, 183, 184, 186, 187, 188, 190, 191, 192, 193, 194, 195,
+          198, 199, 207, 210, 212, 215, 218, 219, 220, 221, 222, 223, 224, 229,
+          230, 232, 233, 239, 241, 251, 252)
+lmdata <- filter_all(data, any_vars(data$`Sub ID` %in% subs))
+
+# This loop iterates through all the networks
+for (n in ntws) {
+    # Printing the current network in green and underlined format
+    paste(n, "~1+AgeatMRI*ALCFREQ\n", sep = "") %>% 
+        green() %>% underline() %>% cat()
+    
+    # Defines the linear model for the current network
+    mdl <- paste0("`", n, "`", "~1+AgeatMRI*ALCFREQ")
+    
+    # Fits the linear model for the current network to the data
+    lm <- lm(mdl, lmdata)
+    
+    # Performs an ANOVA on lm and prints the results
+    lmAov <- lm %>% anova() %T>% print()
+    
+    # Summarizes the lm and extracts the model coefficients along with their confidence intervals
+    lmSum <- lm %>% summary() %>% {.$coefficients} %>% cbind(confint(lm)[row.names(.),]) %T>% print()
+    
+    # Checking the significance of the "AgeatMRI:ALCFREQ" interaction term in the ANOVA
+    if (lmAov["AgeatMRI:ALCFREQ",][["Pr(>F)"]] < 0.08) {
+        paste("Emmeans for AgeatMRI:ALCFREQ\n", sep = "") %>% yellow() %>% cat()
+        
+        # Calculates estimated marginal means (emmeans) for the interaction between "AgeatMRI" and "ALCFREQ"
+        #Emm <- lm %>% emmeans(~AgeatMRI * ALCFREQ) %T>% {print(as.tibble(.))}
+        
+        # Calculates contrasts between specific combinations of the levels of "AgeatMRI" and "ALCFREQ" based on the Emm object
+        #Emm %>% emmeans::contrast(list(c(0, 70), c(0, 1))) %>% 
+            #{cbind(., confint(.)[,5:6])} %T>%
+            #{print(as.tibble(.))}
+    } else {
+        # Checking the significance of the "ALCFREQ" term in the ANOVA
+        if (lmAov["ALCFREQ",][["Pr(>F)"]] < 0.08) {
+            paste("Emmeans for ALCFREQ\n", sep = "") %>% yellow() %>% cat()
+            
+            # Calculates estimated marginal means (emmeans) for "ALCFREQ"
+            #Emm <- lm %>% emmeans(~ALCFREQ) %T>% {print(as.tibble(.))}
+            
+            # Calculates contrasts between specific combinations of the levels of "ALCFREQ" based on the Emm object
+            #contrast_levels <- list(c(1, -1, rep(0, length(levels(lmdata$ALCFREQ)) - 2)))
+            #Emm %>% emmeans::contrast(contrast_levels) %>% {cbind(., confint(.)[, 5:6])} %T>% {print(as.tibble(.))}
+        }
+    }
+}
+
+```
